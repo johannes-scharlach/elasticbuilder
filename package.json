@@ -31,7 +31,7 @@
     "singleQuote": true,
     "trailingComma": "es5"
   },
-  "name": "elasticbuilder",
+  "name": "@johanness/elasticbuilder",
   "author": "Johannes Scharlach",
   "module": "dist/elasticbuilder.esm.js",
   "size-limit": [
