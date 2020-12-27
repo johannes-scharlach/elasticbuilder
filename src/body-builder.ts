@@ -15,7 +15,10 @@ export default class BodyBuilder {
     this._aggs = new AggregationBuilder(AggregationBuilder.is(aggs) ? aggs.build() : aggs)
   }
   build() {
-
+    return {
+      query: this._query.build(),
+      aggs: this._aggs.build()
+    }
   }
 
   get query() {
