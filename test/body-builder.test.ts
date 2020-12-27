@@ -1,4 +1,4 @@
-import { BodyBuilder } from '../src';
+import BodyBuilder from '../src/body-builder';
 
 describe('BodyBuilder', () => {
   test('bodyBuilder should combine queries, filters, aggregations', () => {
@@ -15,21 +15,17 @@ describe('BodyBuilder', () => {
     expect(result).toEqual({
       query: {
         bool: {
+          filter: [
+            { term: { user: 'kimchy' } },
+            { term: { user: 'herald' } },
+          ],
           must: {
             match: {
               message: 'this is a test',
             },
           },
-          filter: {
-            bool: {
-              must: [
-                { term: { user: 'kimchy' } },
-                { term: { user: 'herald' } },
-              ],
-              should: [{ term: { user: 'johnny' } }],
-              must_not: [{ term: { user: 'cassie' } }],
-            },
-          },
+          must_not: { term: { user: 'cassie' } },
+          should: { term: { user: 'johnny' } },
         },
       },
       aggs: {
