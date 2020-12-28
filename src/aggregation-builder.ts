@@ -1,65 +1,82 @@
-import {ISpec, PlainProp} from './types'
+import { ISpec, PlainProp } from './types';
 
 type SpecWithAggs = ISpec & {
-  aggs?: AggregationBuilder | PlainProp
-}
+  aggs?: AggregationBuilder | PlainProp;
+};
 
 export interface Aggs {
-  [x: string]: SpecWithAggs
+  [x: string]: SpecWithAggs;
 }
 
 type FieldOrSpec = string | ISpec;
 
-export default class AggregationBuilder {
-  private aggs: Aggs;
-
-  constructor(init: Aggs = {}) {
-    this.aggs = { ...init };
-  }
-
-  add(
-    nameAndMeta: string | {name: string, meta: any},
+export interface AggregationBuilder {
+  buildAggs(): Record<string, ISpec>;
+  aggregation<A extends AggregationBuilder>(
+    this: A,
+    nameAndMeta: string | { name: string; meta: any },
     type: string,
     fieldOrSpec: FieldOrSpec,
     subAggs?: AggregationBuilder
-  ) {
-    const spec =
-      typeof fieldOrSpec === 'string' ? { field: fieldOrSpec } : fieldOrSpec;
+  ): A;
+}
 
-    const name = typeof nameAndMeta === 'string' ? nameAndMeta : nameAndMeta.name
+export default function aggregationBuilder(
+  init: Aggs = {}
+): AggregationBuilder {
+  const aggs: Aggs = { ...init };
 
-    this.aggs[name] = { [type]: spec };
+  return {
+    aggregation(
+      nameAndMeta: string | { name: string; meta: any },
+      type: string,
+      fieldOrSpec: FieldOrSpec,
+      subAggs?: AggregationBuilder
+    ) {
+      const spec =
+        typeof fieldOrSpec === 'string' ? { field: fieldOrSpec } : fieldOrSpec;
 
-    if (subAggs) {
-      this.aggs[name].aggs = subAggs;
-    }
+      const name =
+        typeof nameAndMeta === 'string' ? nameAndMeta : nameAndMeta.name;
 
-    if (typeof nameAndMeta === 'object' && nameAndMeta.meta) {
-      this.aggs[name].meta = nameAndMeta.meta
-    }
+      aggs[name] = { [type]: spec };
 
-    return this;
-  }
-
-  build(): Record<string, ISpec> {
-    const result: Record<string, ISpec> = {};
-
-    for (const [name, agg] of Object.entries(this.aggs)) {
-      const { aggs, ...rest } = agg;
-      result[name] = rest;
-      if (aggs) {
-        rest.aggs = aggs instanceof AggregationBuilder ? aggs.build() : aggs;
+      if (subAggs) {
+        aggs[name].aggs = subAggs;
       }
-    }
 
-    return result;
-  }
+      if (typeof nameAndMeta === 'object' && nameAndMeta.meta) {
+        aggs[name].meta = nameAndMeta.meta;
+      }
 
-  static is(someBuilder: any): someBuilder is AggregationBuilder {
-    return (
-      someBuilder != null &&
-      typeof someBuilder.add === 'function' &&
-      typeof someBuilder.build === 'function'
-    );
-  }
+      return this;
+    },
+
+    buildAggs(): Record<string, ISpec> {
+      const result: Record<string, ISpec> = {};
+
+      for (const [name, agg] of Object.entries(aggs)) {
+        const { aggs: nestedAggs, ...rest } = agg;
+        result[name] = rest;
+
+        if (nestedAggs) {
+          rest.aggs = isAggregationBuilder(nestedAggs)
+            ? nestedAggs.buildAggs()
+            : nestedAggs;
+        }
+      }
+
+      return result;
+    },
+  };
+}
+
+export function isAggregationBuilder(
+  someBuilder: any
+): someBuilder is AggregationBuilder {
+  return (
+    someBuilder != null &&
+    typeof someBuilder.aggregation === 'function' &&
+    typeof someBuilder.buildAggs === 'function'
+  );
 }

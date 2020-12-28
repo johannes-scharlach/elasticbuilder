@@ -1,10 +1,10 @@
-import QueryBuilder from '../src/query-builder';
+import queryBuilder from '../src/query-builder';
 
 describe('filter', () => {
   test('filter term', () => {
-    const result = new QueryBuilder().filter('term', 'field', 'value');
+    const result = queryBuilder().filter('term', 'field', 'value');
 
-    expect(result.build()).toEqual({
+    expect(result.buildQuery()).toEqual({
       bool: {
         filter: {
           term: { field: 'value' },
@@ -14,12 +14,12 @@ describe('filter', () => {
   });
 
   test('filter nested', () => {
-    const result = new QueryBuilder().filter(
+    const result = queryBuilder().filter(
       'constant_score',
-      new QueryBuilder().filter('term', 'field', 'value')
+      queryBuilder().filter('term', 'field', 'value')
     );
 
-    expect(result.build()).toEqual({
+    expect(result.buildQuery()).toEqual({
       bool: {
         filter: { constant_score: { filter: { term: { field: 'value' } } } },
       },
@@ -29,17 +29,17 @@ describe('filter', () => {
 
 describe('query', () => {
   test('match_all', () => {
-    const result = new QueryBuilder().must('match_all');
+    const result = queryBuilder().must('match_all');
 
-    expect(result.build()).toEqual({
+    expect(result.buildQuery()).toEqual({
       match_all: {},
     });
   });
 
   test('match_all with boost', () => {
-    const result = new QueryBuilder().must('match_all', 'boost', 1.2);
+    const result = queryBuilder().must('match_all', 'boost', 1.2);
 
-    expect(result.build()).toEqual({
+    expect(result.buildQuery()).toEqual({
       match_all: {
         boost: 1.2,
       },
@@ -47,21 +47,17 @@ describe('query', () => {
   });
 
   test('match_none', () => {
-    const result = new QueryBuilder().must('match_none');
+    const result = queryBuilder().must('match_none');
 
-    expect(result.build()).toEqual({
+    expect(result.buildQuery()).toEqual({
       match_none: {},
     });
   });
 
   test('match', () => {
-    const result = new QueryBuilder().must(
-      'match',
-      'message',
-      'this is a test'
-    );
+    const result = queryBuilder().must('match', 'message', 'this is a test');
 
-    expect(result.build()).toEqual({
+    expect(result.buildQuery()).toEqual({
       match: {
         message: 'this is a test',
       },
@@ -69,9 +65,9 @@ describe('query', () => {
   });
 
   test('match empty string', () => {
-    const result = new QueryBuilder().must('match', 'message', '');
+    const result = queryBuilder().must('match', 'message', '');
 
-    expect(result.build()).toEqual({
+    expect(result.buildQuery()).toEqual({
       match: {
         message: '',
       },
@@ -79,12 +75,12 @@ describe('query', () => {
   });
 
   test('match with options', () => {
-    const result = new QueryBuilder().must('match', 'message', {
+    const result = queryBuilder().must('match', 'message', {
       query: 'this is a test',
       operator: 'and',
     });
 
-    expect(result.build()).toEqual({
+    expect(result.buildQuery()).toEqual({
       match: {
         message: {
           query: 'this is a test',
@@ -95,13 +91,13 @@ describe('query', () => {
   });
 
   test('match_phrase', () => {
-    const result = new QueryBuilder().must(
+    const result = queryBuilder().must(
       'match_phrase',
       'message',
       'this is a test'
     );
 
-    expect(result.build()).toEqual({
+    expect(result.buildQuery()).toEqual({
       match_phrase: {
         message: 'this is a test',
       },
@@ -109,12 +105,12 @@ describe('query', () => {
   });
 
   test('match_phrase with options', () => {
-    const result = new QueryBuilder().must('match_phrase', 'message', {
+    const result = queryBuilder().must('match_phrase', 'message', {
       query: 'this is a test',
       analyzer: 'my_analyzer',
     });
 
-    expect(result.build()).toEqual({
+    expect(result.buildQuery()).toEqual({
       match_phrase: {
         message: {
           query: 'this is a test',
@@ -125,12 +121,12 @@ describe('query', () => {
   });
 
   test('common', () => {
-    const result = new QueryBuilder().must('common', 'body', {
+    const result = queryBuilder().must('common', 'body', {
       query: 'this is bonsai cool',
       cutoff_frequency: 0.001,
     });
 
-    expect(result.build()).toEqual({
+    expect(result.buildQuery()).toEqual({
       common: {
         body: {
           query: 'this is bonsai cool',
@@ -141,12 +137,12 @@ describe('query', () => {
   });
 
   test('common', () => {
-    const result = new QueryBuilder().must('common', 'body', {
+    const result = queryBuilder().must('common', 'body', {
       query: 'this is bonsai cool',
       cutoff_frequency: 0.001,
     });
 
-    expect(result.build()).toEqual({
+    expect(result.buildQuery()).toEqual({
       common: {
         body: {
           query: 'this is bonsai cool',
@@ -157,13 +153,13 @@ describe('query', () => {
   });
 
   test('query_string', () => {
-    const result = new QueryBuilder().must(
+    const result = queryBuilder().must(
       'query_string',
       'query',
       'this AND that OR thus'
     );
 
-    expect(result.build()).toEqual({
+    expect(result.buildQuery()).toEqual({
       query_string: {
         query: 'this AND that OR thus',
       },
@@ -171,7 +167,7 @@ describe('query', () => {
   });
 
   test('query_string with options', () => {
-    const result = new QueryBuilder().must(
+    const result = queryBuilder().must(
       'query_string',
       'query',
       'this AND that OR thus',
@@ -180,7 +176,7 @@ describe('query', () => {
       }
     );
 
-    expect(result.build()).toEqual({
+    expect(result.buildQuery()).toEqual({
       query_string: {
         query: 'this AND that OR thus',
         fields: ['content', 'name'],
@@ -189,12 +185,12 @@ describe('query', () => {
   });
 
   test('query_string alternative', () => {
-    const result = new QueryBuilder().must('query_string', {
+    const result = queryBuilder().must('query_string', {
       query: 'this AND that OR thus',
       fields: ['content', 'name'],
     });
 
-    expect(result.build()).toEqual({
+    expect(result.buildQuery()).toEqual({
       query_string: {
         query: 'this AND that OR thus',
         fields: ['content', 'name'],
@@ -203,13 +199,13 @@ describe('query', () => {
   });
 
   test('simple_query_string', () => {
-    const result = new QueryBuilder().must(
+    const result = queryBuilder().must(
       'simple_query_string',
       'query',
       'foo bar baz'
     );
 
-    expect(result.build()).toEqual({
+    expect(result.buildQuery()).toEqual({
       simple_query_string: {
         query: 'foo bar baz',
       },
@@ -217,9 +213,9 @@ describe('query', () => {
   });
 
   test('term', () => {
-    const result = new QueryBuilder().must('term', 'user', 'kimchy');
+    const result = queryBuilder().must('term', 'user', 'kimchy');
 
-    expect(result.build()).toEqual({
+    expect(result.buildQuery()).toEqual({
       term: {
         user: 'kimchy',
       },
@@ -227,12 +223,12 @@ describe('query', () => {
   });
 
   test('term with boost', () => {
-    const result = new QueryBuilder().must('term', 'status', {
+    const result = queryBuilder().must('term', 'status', {
       value: 'urgent',
       boost: '2.0',
     });
 
-    expect(result.build()).toEqual({
+    expect(result.buildQuery()).toEqual({
       term: {
         status: {
           value: 'urgent',
@@ -243,14 +239,14 @@ describe('query', () => {
   });
 
   test('term multiple', () => {
-    const result = new QueryBuilder()
+    const result = queryBuilder()
       .should('term', 'status', {
         value: 'urgent',
         boost: '2.0',
       })
       .should('term', 'status', 'normal');
 
-    expect(result.build()).toEqual({
+    expect(result.buildQuery()).toEqual({
       bool: {
         should: [
           {
@@ -272,12 +268,9 @@ describe('query', () => {
   });
 
   test('terms', () => {
-    const result = new QueryBuilder().must('terms', 'user', [
-      'kimchy',
-      'elastic',
-    ]);
+    const result = queryBuilder().must('terms', 'user', ['kimchy', 'elastic']);
 
-    expect(result.build()).toEqual({
+    expect(result.buildQuery()).toEqual({
       terms: {
         user: ['kimchy', 'elastic'],
       },
@@ -285,9 +278,9 @@ describe('query', () => {
   });
 
   test('range', () => {
-    const result = new QueryBuilder().must('range', 'age', { gte: 10 });
+    const result = queryBuilder().must('range', 'age', { gte: 10 });
 
-    expect(result.build()).toEqual({
+    expect(result.buildQuery()).toEqual({
       range: {
         age: { gte: 10 },
       },
@@ -295,9 +288,9 @@ describe('query', () => {
   });
 
   test('exists', () => {
-    const result = new QueryBuilder().must('exists', 'user');
+    const result = queryBuilder().must('exists', 'user');
 
-    expect(result.build()).toEqual({
+    expect(result.buildQuery()).toEqual({
       exists: {
         field: 'user',
       },
@@ -305,9 +298,9 @@ describe('query', () => {
   });
 
   test('missing', () => {
-    const result = new QueryBuilder().must('missing', 'user');
+    const result = queryBuilder().must('missing', 'user');
 
-    expect(result.build()).toEqual({
+    expect(result.buildQuery()).toEqual({
       missing: {
         field: 'user',
       },
@@ -315,9 +308,9 @@ describe('query', () => {
   });
 
   test('prefix', () => {
-    const result = new QueryBuilder().must('prefix', 'user', 'ki');
+    const result = queryBuilder().must('prefix', 'user', 'ki');
 
-    expect(result.build()).toEqual({
+    expect(result.buildQuery()).toEqual({
       prefix: {
         user: 'ki',
       },
@@ -325,12 +318,12 @@ describe('query', () => {
   });
 
   test('prefix with boost', () => {
-    const result = new QueryBuilder().must('prefix', 'user', {
+    const result = queryBuilder().must('prefix', 'user', {
       value: 'ki',
       boost: 2,
     });
 
-    expect(result.build()).toEqual({
+    expect(result.buildQuery()).toEqual({
       prefix: {
         user: {
           value: 'ki',
@@ -341,9 +334,9 @@ describe('query', () => {
   });
 
   test('wildcard', () => {
-    const result = new QueryBuilder().must('wildcard', 'user', 'ki*y');
+    const result = queryBuilder().must('wildcard', 'user', 'ki*y');
 
-    expect(result.build()).toEqual({
+    expect(result.buildQuery()).toEqual({
       wildcard: {
         user: 'ki*y',
       },
@@ -351,9 +344,9 @@ describe('query', () => {
   });
 
   test('regexp', () => {
-    const result = new QueryBuilder().must('regexp', 'name.first', 's.*y');
+    const result = queryBuilder().must('regexp', 'name.first', 's.*y');
 
-    expect(result.build()).toEqual({
+    expect(result.buildQuery()).toEqual({
       regexp: {
         'name.first': 's.*y',
       },
@@ -361,9 +354,9 @@ describe('query', () => {
   });
 
   test('fuzzy', () => {
-    const result = new QueryBuilder().must('fuzzy', 'user', 'ki');
+    const result = queryBuilder().must('fuzzy', 'user', 'ki');
 
-    expect(result.build()).toEqual({
+    expect(result.buildQuery()).toEqual({
       fuzzy: {
         user: 'ki',
       },
@@ -371,9 +364,9 @@ describe('query', () => {
   });
 
   test('type', () => {
-    const result = new QueryBuilder().must('type', 'value', 'my_type');
+    const result = queryBuilder().must('type', 'value', 'my_type');
 
-    expect(result.build()).toEqual({
+    expect(result.buildQuery()).toEqual({
       type: {
         value: 'my_type',
       },
@@ -381,11 +374,11 @@ describe('query', () => {
   });
 
   test('ids', () => {
-    const result = new QueryBuilder().must('ids', 'type', 'my_ids', {
+    const result = queryBuilder().must('ids', 'type', 'my_ids', {
       values: ['1', '4', '100'],
     });
 
-    expect(result.build()).toEqual({
+    expect(result.buildQuery()).toEqual({
       ids: {
         type: 'my_ids',
         values: ['1', '4', '100'],
@@ -394,13 +387,13 @@ describe('query', () => {
   });
 
   test('constant_score', () => {
-    const result = new QueryBuilder().must(
+    const result = queryBuilder().must(
       'constant_score',
       { boost: 1.2 },
-      new QueryBuilder().filter('term', 'user', 'kimchy')
+      queryBuilder().filter('term', 'user', 'kimchy')
     );
 
-    expect(result.build()).toEqual({
+    expect(result.buildQuery()).toEqual({
       constant_score: {
         filter: {
           term: { user: 'kimchy' },
@@ -411,15 +404,15 @@ describe('query', () => {
   });
 
   test('nested', () => {
-    const result = new QueryBuilder().must(
+    const result = queryBuilder().must(
       'nested',
       { path: 'obj1', score_mode: 'avg' },
-      new QueryBuilder()
+      queryBuilder()
         .must('match', 'obj1.name', 'blue')
         .must('range', 'obj1.count', { gt: 5 })
     );
 
-    expect(result.build()).toEqual({
+    expect(result.buildQuery()).toEqual({
       nested: {
         path: 'obj1',
         score_mode: 'avg',
@@ -436,14 +429,14 @@ describe('query', () => {
   });
 
   test('has_child', () => {
-    const result = new QueryBuilder().must(
+    const result = queryBuilder().must(
       'has_child',
       'type',
       'blog_tag',
-      new QueryBuilder().must('term', 'tag', 'something')
+      queryBuilder().must('term', 'tag', 'something')
     );
 
-    expect(result.build()).toEqual({
+    expect(result.buildQuery()).toEqual({
       has_child: {
         type: 'blog_tag',
         query: {
@@ -454,14 +447,14 @@ describe('query', () => {
   });
 
   test('has_parent', () => {
-    const result = new QueryBuilder().must(
+    const result = queryBuilder().must(
       'has_parent',
       'parent_tag',
       'blog',
-      new QueryBuilder().must('term', 'tag', 'something')
+      queryBuilder().must('term', 'tag', 'something')
     );
 
-    expect(result.build()).toEqual({
+    expect(result.buildQuery()).toEqual({
       has_parent: {
         parent_tag: 'blog',
         query: {
@@ -472,7 +465,7 @@ describe('query', () => {
   });
 
   test('geo_bounding_box', () => {
-    const result = new QueryBuilder().must(
+    const result = queryBuilder().must(
       'geo_bounding_box',
       'pin.location',
       {
@@ -484,7 +477,7 @@ describe('query', () => {
       }
     );
 
-    expect(result.build()).toEqual({
+    expect(result.buildQuery()).toEqual({
       geo_bounding_box: {
         relation: 'within',
         'pin.location': {
@@ -496,7 +489,7 @@ describe('query', () => {
   });
 
   test('geo_distance', () => {
-    const result = new QueryBuilder().must(
+    const result = queryBuilder().must(
       'geo_distance',
       'pin.location',
       {
@@ -508,7 +501,7 @@ describe('query', () => {
       }
     );
 
-    expect(result.build()).toEqual({
+    expect(result.buildQuery()).toEqual({
       geo_distance: {
         distance: '200km',
         'pin.location': {
@@ -520,7 +513,7 @@ describe('query', () => {
   });
 
   test('geo_distance_range', () => {
-    const result = new QueryBuilder().must(
+    const result = queryBuilder().must(
       'geo_distance_range',
       'pin.location',
       {
@@ -533,7 +526,7 @@ describe('query', () => {
       }
     );
 
-    expect(result.build()).toEqual({
+    expect(result.buildQuery()).toEqual({
       geo_distance_range: {
         from: '100km',
         to: '200km',
@@ -546,7 +539,7 @@ describe('query', () => {
   });
 
   test('geo_polygon', () => {
-    const result = new QueryBuilder().must('geo_polygon', 'person.location', {
+    const result = queryBuilder().must('geo_polygon', 'person.location', {
       points: [
         { lat: 40, lon: -70 },
         { lat: 30, lon: -80 },
@@ -554,7 +547,7 @@ describe('query', () => {
       ],
     });
 
-    expect(result.build()).toEqual({
+    expect(result.buildQuery()).toEqual({
       geo_polygon: {
         'person.location': {
           points: [
@@ -568,7 +561,7 @@ describe('query', () => {
   });
 
   test('geohash_cell', () => {
-    const result = new QueryBuilder().must(
+    const result = queryBuilder().must(
       'geohash_cell',
       'pin',
       {
@@ -581,7 +574,7 @@ describe('query', () => {
       }
     );
 
-    expect(result.build()).toEqual({
+    expect(result.buildQuery()).toEqual({
       geohash_cell: {
         pin: {
           lat: 13.408,
@@ -594,14 +587,14 @@ describe('query', () => {
   });
 
   test('more_like_this', () => {
-    const result = new QueryBuilder().must('more_like_this', {
+    const result = queryBuilder().must('more_like_this', {
       fields: ['title', 'description'],
       like: 'Once upon a time',
       min_term_freq: 1,
       max_query_terms: 12,
     });
 
-    expect(result.build()).toEqual({
+    expect(result.buildQuery()).toEqual({
       more_like_this: {
         fields: ['title', 'description'],
         like: 'Once upon a time',
@@ -612,14 +605,14 @@ describe('query', () => {
   });
 
   test('template', () => {
-    const result = new QueryBuilder().must('template', {
+    const result = queryBuilder().must('template', {
       inline: { match: { text: '{{query_string}}' } },
       params: {
         query_string: 'all about search',
       },
     });
 
-    expect(result.build()).toEqual({
+    expect(result.buildQuery()).toEqual({
       template: {
         inline: { match: { text: '{{query_string}}' } },
         params: {
@@ -630,12 +623,12 @@ describe('query', () => {
   });
 
   test('script', () => {
-    const result = new QueryBuilder().must('script', 'script', {
+    const result = queryBuilder().must('script', 'script', {
       inline: "doc['num1'].value > 1",
       lang: 'painless',
     });
 
-    expect(result.build()).toEqual({
+    expect(result.buildQuery()).toEqual({
       script: {
         script: {
           inline: "doc['num1'].value > 1",
@@ -646,23 +639,23 @@ describe('query', () => {
   });
 
   test('or', () => {
-    const result = new QueryBuilder().must('or', [
+    const result = queryBuilder().must('or', [
       { term: { user: 'kimchy' } },
       { term: { user: 'tony' } },
     ]);
 
-    expect(result.build()).toEqual({
+    expect(result.buildQuery()).toEqual({
       or: [{ term: { user: 'kimchy' } }, { term: { user: 'tony' } }],
     });
   });
 
   test('minimum_should_match with multiple combination', () => {
-    const result = new QueryBuilder()
+    const result = queryBuilder()
       .should('term', 'status', 'alert')
       .should('term', 'status', 'normal')
       .minimumShouldMatch('2<-25% 9<-3');
 
-    expect(result.build()).toEqual({
+    expect(result.buildQuery()).toEqual({
       bool: {
         should: [
           {
@@ -682,12 +675,12 @@ describe('query', () => {
   });
 
   test('minimum_should_match with multiple queries', () => {
-    const result = new QueryBuilder()
+    const result = queryBuilder()
       .should('term', 'status', 'alert')
       .should('term', 'status', 'normal')
       .minimumShouldMatch(2);
 
-    expect(result.build()).toEqual({
+    expect(result.buildQuery()).toEqual({
       bool: {
         should: [
           {

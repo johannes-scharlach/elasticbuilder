@@ -1,30 +1,31 @@
-import BodyBuilder from '../src/body-builder';
-import AggregationBuilder from '../src/aggregation-builder';
+import bodyBuilder from '../src/body-builder';
 
 describe('BodyBuilder', () => {
   test('bodyBuilder should combine queries, filters, aggregations', () => {
-    const bb = new BodyBuilder();
-    bb.query
-      .must('match', 'message', 'this is a test')
+    const bb = bodyBuilder();
+    bb.must('match', 'message', 'this is a test')
       .filter('term', 'user', 'kimchy')
       .filter('term', 'user', 'herald')
       .should('term', 'user', 'johnny')
-      .mustNot('term', 'user', 'cassie');
-    bb.aggs.add('agg_terms_user', 'terms', 'user').add(
-      'agg_diversified_sampler_user.id',
-      'diversified_sampler',
-      {
-        field: 'user.id',
-        shard_size: 200,
-      },
-      new AggregationBuilder({
-        keywords: {
-          significant_terms: {
-            field: 'text',
-          },
+      .mustNot('term', 'user', 'cassie')
+      .aggregation('agg_terms_user', 'terms', 'user')
+      .aggregation(
+        'agg_diversified_sampler_user.id',
+        'diversified_sampler',
+        {
+          field: 'user.id',
+          shard_size: 200,
         },
-      })
-    );
+        bodyBuilder({
+          aggs: {
+            keywords: {
+              significant_terms: {
+                field: 'text',
+              },
+            },
+          },
+        })
+      );
     const result = bb.build();
 
     expect(result).toEqual({
