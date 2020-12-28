@@ -30,160 +30,75 @@ interface PrivateBool {
   boost?: number;
 }
 
-export default class QueryBuilder {
-  static is(someBuilder: any): someBuilder is QueryBuilder {
-    return (
-      someBuilder != null &&
-      typeof someBuilder.buildBools === 'function' &&
-      typeof someBuilder.build === 'function'
-    );
+export function isQueryBuilder(someBuilder: any): someBuilder is QueryBuilder {
+  return (
+    someBuilder != null &&
+    typeof someBuilder.buildBools === 'function' &&
+    typeof someBuilder.buildQuery === 'function'
+  );
+}
+
+declare function queryFn<B extends QueryBuilder>(
+  this: B,
+  type: string,
+  value?: PlainProp | QueryBuilder
+): B;
+declare function queryFn<B extends QueryBuilder>(
+  this: B,
+  type: string,
+  fieldOrValue: PlainProp,
+  valueOrOpts?: PlainProp | QueryBuilder,
+  opts?: ISpec | QueryBuilder
+): B;
+declare function queryFn<B extends QueryBuilder>(
+  this: B,
+  type: string,
+  fieldOrValue?: PlainProp | QueryBuilder,
+  valueOrOpts?: PlainProp | QueryBuilder,
+  opts?: ISpec | QueryBuilder
+): B;
+
+export interface QueryBuilder {
+  must: typeof queryFn;
+  filter: typeof queryFn;
+  mustNot: typeof queryFn;
+  should: typeof queryFn;
+  buildBools(queryKey?: 'query' | 'must'): BuiltBoolClauses;
+  minimumShouldMatch<B extends QueryBuilder>(
+    this: B,
+    minimumShouldMatch: number | string
+  ): B;
+  buildQuery(): ISpec | ISpec[];
+}
+
+function unnest<T extends object>(arr: T[]): T | T[] {
+  return arr.length === 1 ? arr[0] : arr;
+}
+
+function runBuild(qs: QuerySpec): ISpec {
+  const result: ISpec = {};
+
+  for (const [key, condition] of Object.entries(qs)) {
+    result[key] = condition.build();
   }
 
-  private privateBool: PrivateBool = {
+  return result;
+}
+
+export default function queryBuilder(init?: ISpec | ISpec[]): QueryBuilder {
+  const privateBool: PrivateBool = {
     must: [],
     filter: [],
     must_not: [],
     should: [],
   };
-  constructor(init?: ISpec | ISpec[]) {
-    if (init) {
-      const inits = Array.isArray(init) ? init : [init]
-      this.privateBool.must.push(...inits.map(Condition.clauseFromSpec));
-    }
+
+  if (init) {
+    const inits = Array.isArray(init) ? init : [init];
+    privateBool.must.push(...inits.map(Condition.clauseFromSpec));
   }
 
-  public must(type: string, value?: PlainProp | QueryBuilder): QueryBuilder;
-  public must(
-    type: string,
-    fieldOrValue: PlainProp,
-    valueOrOpts?: PlainProp | QueryBuilder,
-    opts?: ISpec | QueryBuilder
-  ): QueryBuilder;
-  public must(
-    type: string,
-    fieldOrValue?: PlainProp | QueryBuilder,
-    valueOrOpts?: PlainProp | QueryBuilder,
-    opts?: ISpec | QueryBuilder
-  ): QueryBuilder {
-    this.addClause('must', type, fieldOrValue, valueOrOpts, opts);
-
-    return this;
-  }
-  public filter(type: string, value?: PlainProp | QueryBuilder): QueryBuilder;
-  public filter(
-    type: string,
-    fieldOrValue: PlainProp,
-    valueOrOpts?: PlainProp | QueryBuilder,
-    opts?: ISpec | QueryBuilder
-  ): QueryBuilder;
-  public filter(
-    type: string,
-    fieldOrValue?: PlainProp | QueryBuilder,
-    valueOrOpts?: PlainProp | QueryBuilder,
-    opts?: ISpec | QueryBuilder
-  ): QueryBuilder {
-    this.addClause('filter', type, fieldOrValue, valueOrOpts, opts);
-
-    return this;
-  }
-  public mustNot(type: string, value?: PlainProp | QueryBuilder): QueryBuilder;
-  public mustNot(
-    type: string,
-    fieldOrValue: PlainProp,
-    valueOrOpts?: PlainProp | QueryBuilder,
-    opts?: ISpec | QueryBuilder
-  ): QueryBuilder;
-  public mustNot(
-    type: string,
-    fieldOrValue?: PlainProp | QueryBuilder,
-    valueOrOpts?: PlainProp | QueryBuilder,
-    opts?: ISpec | QueryBuilder
-  ): QueryBuilder {
-    this.addClause('must_not', type, fieldOrValue, valueOrOpts, opts);
-
-    return this;
-  }
-  public should(type: string, value?: PlainProp | QueryBuilder): QueryBuilder;
-  public should(
-    type: string,
-    fieldOrValue: PlainProp,
-    valueOrOpts?: PlainProp | QueryBuilder,
-    opts?: ISpec | QueryBuilder
-  ): QueryBuilder;
-  public should(
-    type: string,
-    fieldOrValue?: PlainProp | QueryBuilder,
-    valueOrOpts?: PlainProp | QueryBuilder,
-    opts?: ISpec | QueryBuilder
-  ): QueryBuilder {
-    this.addClause('should', type, fieldOrValue, valueOrOpts, opts);
-
-    return this;
-  }
-
-  minimumShouldMatch(minimumShouldMatch: number | string) {
-    this.privateBool.minimum_should_match = minimumShouldMatch
-
-    return this
-  }
-
-  build(): ISpec | ISpec[] {
-    const bool = this.buildBools();
-
-    if (Object.keys(bool).length === 1 && bool.must) return bool.must
-    return { bool: bool as ISpec };
-  }
-
-  buildBools(queryKey: 'query' | 'must' = 'must'): BuiltBoolClauses {
-    const bool: BuiltBoolClauses = {};
-    const {
-      must,
-      filter,
-      must_not,
-      should,
-      minimum_should_match,
-      boost,
-    } = this.privateBool;
-
-    if (must.length) {
-      bool[queryKey] = this.unnest(must.map(this.runBuild));
-    }
-    if (filter.length) {
-      bool.filter = this.unnest(filter.map(this.runBuild));
-    }
-    if (must_not.length) {
-      bool.must_not = this.unnest(must_not.map(this.runBuild));
-    }
-    if (should.length) {
-      bool.should = this.unnest(should.map(this.runBuild));
-    }
-
-    if (minimum_should_match !== undefined) {
-      bool.minimum_should_match = minimum_should_match;
-    }
-
-    if (boost !== undefined) {
-      bool.boost = boost;
-    }
-
-    return bool;
-  }
-
-  private runBuild(qs: QuerySpec): ISpec {
-    const result: ISpec = {};
-
-    for (const [key, condition] of Object.entries(qs)) {
-      result[key] = condition.build();
-    }
-
-    return result;
-  }
-
-  private unnest<T extends object>(arr: T[]): T | T[] {
-    return arr.length === 1 ? arr[0] : arr;
-  }
-
-  private addClause(
+  function addClause(
     boolType: keyof BoolClauses,
     type: string,
     fieldOrValue?: PlainProp | QueryBuilder,
@@ -192,19 +107,110 @@ export default class QueryBuilder {
   ) {
     const condition = new Condition(fieldOrValue, value, opts);
     const clause = { [type]: condition };
-    this.privateBool[boolType].push(clause);
+    privateBool[boolType].push(clause);
   }
+
+  return {
+    must(
+      type: string,
+      fieldOrValue?: PlainProp | QueryBuilder,
+      valueOrOpts?: PlainProp | QueryBuilder,
+      opts?: ISpec | QueryBuilder
+    ): QueryBuilder {
+      addClause('must', type, fieldOrValue, valueOrOpts, opts);
+
+      return this;
+    },
+    filter(
+      type: string,
+      fieldOrValue?: PlainProp | QueryBuilder,
+      valueOrOpts?: PlainProp | QueryBuilder,
+      opts?: ISpec | QueryBuilder
+    ): QueryBuilder {
+      addClause('filter', type, fieldOrValue, valueOrOpts, opts);
+
+      return this;
+    },
+    mustNot(
+      type: string,
+      fieldOrValue?: PlainProp | QueryBuilder,
+      valueOrOpts?: PlainProp | QueryBuilder,
+      opts?: ISpec | QueryBuilder
+    ): QueryBuilder {
+      addClause('must_not', type, fieldOrValue, valueOrOpts, opts);
+
+      return this;
+    },
+    should(
+      type: string,
+      fieldOrValue?: PlainProp | QueryBuilder,
+      valueOrOpts?: PlainProp | QueryBuilder,
+      opts?: ISpec | QueryBuilder
+    ): QueryBuilder {
+      addClause('should', type, fieldOrValue, valueOrOpts, opts);
+
+      return this;
+    },
+
+    minimumShouldMatch(minimumShouldMatch: number | string) {
+      privateBool.minimum_should_match = minimumShouldMatch;
+
+      return this;
+    },
+
+    buildQuery(): ISpec | ISpec[] {
+      const bool = this.buildBools();
+
+      if (Object.keys(bool).length === 1 && bool.must) return bool.must;
+      return { bool: bool as ISpec };
+    },
+
+    buildBools(queryKey: 'query' | 'must' = 'must'): BuiltBoolClauses {
+      const bool: BuiltBoolClauses = {};
+      const {
+        must,
+        filter,
+        must_not,
+        should,
+        minimum_should_match,
+        boost,
+      } = privateBool;
+
+      if (must.length) {
+        bool[queryKey] = unnest(must.map(runBuild));
+      }
+      if (filter.length) {
+        bool.filter = unnest(filter.map(runBuild));
+      }
+      if (must_not.length) {
+        bool.must_not = unnest(must_not.map(runBuild));
+      }
+      if (should.length) {
+        bool.should = unnest(should.map(runBuild));
+      }
+
+      if (minimum_should_match !== undefined) {
+        bool.minimum_should_match = minimum_should_match;
+      }
+
+      if (boost !== undefined) {
+        bool.boost = boost;
+      }
+
+      return bool;
+    },
+  };
 }
 
 class Condition {
   static clauseFromSpec(spec: ISpec) {
-    const clause: Record<string, Condition> = {}
+    const clause: Record<string, Condition> = {};
 
     for (const [type, rawCondition] of Object.entries(spec)) {
-      clause[type] = new Condition(rawCondition)
+      clause[type] = new Condition(rawCondition);
     }
 
-    return clause
+    return clause;
   }
   private field?: string;
   private value?: PlainProp | QueryBuilder;
@@ -222,7 +228,7 @@ class Condition {
     } else {
       this.value = fieldOrValue;
       if (typeof value === 'object' && !Array.isArray(value)) {
-        this.opts = value
+        this.opts = value;
       }
     }
   }
@@ -231,21 +237,23 @@ class Condition {
     if (!this.field && !this.value) return {};
 
     const field = this.field;
-    const value: PlainProp | undefined = QueryBuilder.is(this.value)
-      ? this.value.buildBools('query') as ISpec
+    const value: PlainProp | undefined = isQueryBuilder(this.value)
+      ? (this.value.buildBools('query') as ISpec)
       : this.value;
-    const opts: PlainProp | undefined = QueryBuilder.is(this.opts)
-      ? this.opts.buildBools('query') as ISpec
+    const opts: PlainProp | undefined = isQueryBuilder(this.opts)
+      ? (this.opts.buildBools('query') as ISpec)
       : this.opts;
 
     if (!field) {
-      if (Array.isArray(value)) return value
+      if (Array.isArray(value)) return value;
       return {
         ...(typeof value === 'object' && !Array.isArray(value) && value),
         ...opts,
       };
     }
 
-    return value !== undefined ? { [field]: value, ...opts } : { field, ...opts };
+    return value !== undefined
+      ? { [field]: value, ...opts }
+      : { field, ...opts };
   }
 }
