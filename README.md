@@ -1,10 +1,13 @@
-# TSDX User Guide
+# ElasticBuilder
 
-Congrats! You just saved yourself hours of work by bootstrapping this project with TSDX. Let’s get you oriented with what’s here and how to use it.
+This is a re-write of the popular [bodybuilder](https://github.com/danpaz/bodybuilder), an elasticsearch query body builder.
 
-> This TSDX setup is meant for developing libraries (not apps!) that can be published to NPM. If you’re looking to build a Node app, you could use `ts-node-dev`, plain `ts-node`, or simple `tsc`.
+This repository is intended as a proof of concept that a re-write in TypeScript (with full TypeScript support for the user) is possible. It passes all the bodybuilder tests, but the API is not guaranteed to be stable, so use in production environments is discouraged.
 
-> If you’re new to TypeScript, checkout [this handy cheatsheet](https://devhints.io/typescript)
+For this to actually replace the existing bodybuilder, backwards compatability to the majority bodybuilder API should be provided. With very few exceptions, this is possible and if you're interested in doing the work, I'm happy to guide you.
+
+
+The remaining README explains how to work with TSDX (tooling for TS libraries).
 
 ## Commands
 
