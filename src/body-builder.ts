@@ -1,34 +1,44 @@
-import {ISpec} from './types'
-import AggregationBuilder, { Aggs } from "./aggregation-builder";
-import QueryBuilder from "./query-builder";
+import { ISpec } from './types';
+import aggregationBuilder, {
+  Aggs,
+  AggregationBuilder,
+  isAggregationBuilder,
+} from './aggregation-builder';
+import queryBuilder, { isQueryBuilder, QueryBuilder } from './query-builder';
 
 type NewBodyBuilder = ISpec & {
-  query?: ISpec | QueryBuilder,
-  aggs?: Aggs | AggregationBuilder
+  query?: ISpec | QueryBuilder;
+  aggs?: Aggs | AggregationBuilder;
+};
+
+interface BodyBuilder extends AggregationBuilder, QueryBuilder {
+  build(): ISpec;
+  toJson(): ISpec;
 }
 
-export default class BodyBuilder {
-  private _query: QueryBuilder
-  private _aggs: AggregationBuilder
-  private _rest: ISpec
-  constructor({query, aggs, ...rest}: NewBodyBuilder = {}) {
-    this._query = new QueryBuilder(QueryBuilder.is(query) ? query.build(): query)
-    this._aggs = new AggregationBuilder(AggregationBuilder.is(aggs) ? aggs.build() : aggs)
-    this._rest = rest
-  }
-  build() {
-    return {
-      query: this._query.build(),
-      aggs: this._aggs.build(),
-      ...this._rest
-    }
-  }
-
-  get query() {
-    return this._query
-  }
-
-  get aggs() {
-    return this._aggs
-  }
+export default function bodyBuilder({
+  query,
+  aggs,
+  ...rest
+}: NewBodyBuilder = {}): BodyBuilder {
+  const _query: QueryBuilder = queryBuilder(
+    isQueryBuilder(query) ? query.buildQuery() : query
+  );
+  const _aggs: AggregationBuilder = aggregationBuilder(
+    isAggregationBuilder(aggs) ? aggs.buildAggs() : aggs
+  );
+  return {
+    build() {
+      return {
+        query: _query.buildQuery(),
+        aggs: _aggs.buildAggs(),
+        ...rest,
+      };
+    },
+    toJson() {
+      return this.build();
+    },
+    ..._aggs,
+    ..._query,
+  };
 }
